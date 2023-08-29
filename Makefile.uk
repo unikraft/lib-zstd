@@ -1,0 +1,121 @@
+#  libzstd Makefile.uk
+#
+#  Authors: Andrei Tatar <andrei@unikraft.io>
+#
+#  Copyright (c) 2023, Unikraft GmbH and The Unikraft Authors.
+#
+#  Redistribution and use in source and binary forms, with or without
+#  modification, are permitted provided that the following conditions
+#  are met:
+#
+#  1. Redistributions of source code must retain the above copyright
+#     notice, this list of conditions and the following disclaimer.
+#  2. Redistributions in binary form must reproduce the above copyright
+#     notice, this list of conditions and the following disclaimer in the
+#     documentation and/or other materials provided with the distribution.
+#  3. Neither the name of the copyright holder nor the names of its
+#     contributors may be used to endorse or promote products derived from
+#     this software without specific prior written permission.
+#
+#  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+#  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+#  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+#  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+#  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+#  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+#  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+#  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+#  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+#  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+#  POSSIBILITY OF SUCH DAMAGE.
+#
+
+################################################################################
+# Library registration
+################################################################################
+$(eval $(call addlib_s,libzstd,$(CONFIG_LIBZSTD)))
+
+################################################################################
+# Sources
+################################################################################
+LIBZSTD_VERSION=1.5.5
+LIBZSTD_URL=https://github.com/facebook/zstd/archive/refs/tags/v$(LIBZSTD_VERSION).tar.gz
+LIBZSTD_DIRNAME=zstd-$(LIBZSTD_VERSION)
+#LIBZSTD_PATCHDIR=$(LIBZSTD_BASE)/patches
+$(eval $(call fetch,libzstd,$(LIBZSTD_URL)))
+#$(eval $(call patch,libzstd,$(LIBZSTD_PATCHDIR),$(LIBZSTD_DIRNAME)))
+
+################################################################################
+# Helpers
+################################################################################
+LIBZSTD_SRC = $(LIBZSTD_ORIGIN)/$(LIBZSTD_DIRNAME)
+
+################################################################################
+# Library includes
+################################################################################
+# API
+LIBZSTD__API += -I$(LIBZSTD_SRC)/lib
+
+CINCLUDES-$(CONFIG_LIBZSTD) += $(LIBZSTD__API)
+CXXINCLUDES-$(CONFIG_LIBZSTD) += $(LIBZSTD__API)
+
+################################################################################
+# Global flags
+################################################################################
+LIBZSTD_CFLAGS-y += -DDEBUGLEVEL=0
+LIBZSTD_CFLAGS-y += -DZSTD_LEGACY_SUPPORT=5
+LIBZSTD_CFLAGS-y += -DXXH_NAMESPACE=ZSTD_
+LIBZSTD_CFLAGS-$(CONFIG_LIBMUSL_THREAD) += -DZSTD_MULTITHREAD
+
+# Disable intrinsics support if intrinsics lib not enabled
+ifneq ($(CONFIG_LIBINTEL_INTRINSICS),y)
+LIBZSTD_CFLAGS-$(CONFIG_ARCH_X86_64) += -DZSTD_NO_INTRINSICS
+endif
+ifneq ($(CONFIG_LIBARM_INTRINSICS),y)
+LIBZSTD_CFLAGS-$(CONFIG_ARCH_ARM_32) += -DZSTD_NO_INTRINSICS
+LIBZSTD_CFLAGS-$(CONFIG_ARCH_ARM_64) += -DZSTD_NO_INTRINSICS
+endif
+
+LIBZSTD_CFLAGS-y += -fvisibility=hidden
+
+LIBZSTD_CFLAGS-$(call have_clang) += -Wno-documentation-unknown-command
+
+################################################################################
+# Library sources
+################################################################################
+# These are taken from the upstream build in the order that make builds them.
+# Please take care to maintain the order when updating.
+################################################################################
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/common/debug.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/common/entropy_common.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/common/error_private.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/common/fse_decompress.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/common/pool.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/common/threading.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/common/xxhash.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/common/zstd_common.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/legacy/zstd_v05.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/legacy/zstd_v06.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/legacy/zstd_v07.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/compress/fse_compress.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/compress/hist.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/compress/huf_compress.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/compress/zstd_compress.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/compress/zstd_compress_literals.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/compress/zstd_compress_sequences.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/compress/zstd_compress_superblock.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/compress/zstd_double_fast.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/compress/zstd_fast.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/compress/zstd_lazy.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/compress/zstd_ldm.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/compress/zstd_opt.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/compress/zstdmt_compress.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/decompress/huf_decompress.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/decompress/zstd_ddict.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/decompress/zstd_decompress.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/decompress/zstd_decompress_block.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/decompress/huf_decompress_amd64.S
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/dictBuilder/cover.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/dictBuilder/divsufsort.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/dictBuilder/fastcover.c
+LIBZSTD_SRCS-y += $(LIBZSTD_SRC)/lib/dictBuilder/zdict.c
