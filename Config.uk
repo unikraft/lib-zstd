@@ -1,0 +1,4 @@
+config LIBZSTD
+    bool "zstd - real-time data compression algorithm"
+    depends on HAVE_LIBC
+    default n
